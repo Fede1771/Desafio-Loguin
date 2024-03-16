@@ -1,6 +1,7 @@
 const passport = require("passport");
 const local = require("passport-local");
 
+const GitHubStrategy = require("passport-github2");
 const UserModel = require("../models/user.model.js");
 const { createHash, isValidPassword } = require("../utils/hashbcryp.js");
 
@@ -62,6 +63,34 @@ const initializePassport = () => {
         let user = await UserModel.findById({_id:id});
         done(null, user);
     })
+
+    passport.use("github", new GitHubStrategy({
+        clientID: "Iv1.4b9a76602828c23f",
+        clientSecret: "247f14c58205bff14ec98d0913c669703ec9179b",
+        callbackURL: "http://localhost:8080/api/sessions/githubcallback"
+    }, async (accessToken, refreshToken, profile, done) => {
+        console.log(profile); 
+        try {
+            let user = await UserModel.findOne({email: profile._json.email});
+            if(!user) {
+                //Si no encuentro ningun usuario con este email, lo voy a crear:
+                let newUser = {
+                    first_name: profile._json.name,
+                    last_name: "",
+                    age: 25,
+                    email: profile._json.email,
+                    password: ""
+                }
+                //Una vez que tengo el nuevo usuario, lo guardo en MongoDB
+                let result = await UserModel.create(newUser);
+                done(null, result);
+            } else {
+                done(null, user);
+            }
+        } catch (error) {
+            return done(error);
+        }
+    }))
 
 }
 
